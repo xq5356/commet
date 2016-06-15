@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>React tutorial</title>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.0/react.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.0/react-dom.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.2/marked.min.js"></script>
+</head>
+<body>
+	<div id="content"></div>
+	<script type="text/babel" >
+		var Commet =React.createClass({
+		rawMarkup:function(){
+			var rawMarkup =marked(this.props.children.toString(),{sanitize:true});
+			return {__html: rawMarkup};
+		},
+		render:function(){
+			return (
+				<div className="commet">
+					<h2 className="commetAuthor">{this.props.author}</h2>
+					<span dangerouslySetInnerHTML={this.rawMarkup()} />
+				</div>
+			);
+		}
+		});
+
+
+		var CommetList =React.createClass({
+		render: function (){
+			var commetNodes =this.props.data.map(function(commet,i){
+			return (
+				<Commet author={commet.author} key={i}>
+					{commet.text}
+				
+				</Commet>
+			)
+			});
+
+			return(
+			<div className="commetList">
+			{commetNodes}
+			</div>
+			)
+		}
+		});
+
+		var CommetForm =React.createClass({
+		handleSubmit:function(e){
+		e.preventDefault();
+		var author=this.refs.author.value.trim();
+		var text =this.refs.text.value.trim();
+		if(!author||!text){
+		return;
+		}
+		this.props.onCommetSubmit({author:author,text:text});
+		this.refs.author.value="";
+		this.refs.text.value="";
+		},
+
+		render:function (){
+		return(	
+			<form className="commetForm" onSubmit ={this.handleSubmit}> 
+				<input type="text" placeholder="Your name" ref="author" /><br/><br/>
+				<input type="text" placeholder="Say something" ref="text" /><br/><br/>
+				<input type="submit" value="post" />
+			</form>
+		);
+		}
+		});
+
+		var CommetBox = React.createClass({
+
+		getInitialState:function(){
+			return {
+			data:[]
+			};
+		},
+		
+		componentDidMount: function(){
+		$.ajax({
+			url:this.props.url,
+			dataType:'json',
+			cache:false,
+			success:function(data){
+			this.setState({data:data});
+			}.bind(this),
+			error:function(xhr,status,err){
+			console.error(this.props.url,status,err.toString());
+			}.bind(this)
+		})
+		},
+		handleCommetSubmit:function(commet){
+			var commets =this.state.data;
+			var newCommets =commets.concat([commet]);
+			this.setState({data:newCommets});
+			$.ajax({
+			url:this.props.url,
+			dataType:'json',
+			type:"POST",
+			data:commet,
+			success:function(){
+			this.setState({data:data});
+			}.bind(this),
+			error:function(xhr,status,err){
+			console.error(this.props.url,status,err.toString());
+			}.bind(this)
+			});
+		},
+		render: function (){
+		return (
+			<div className="commetBox">
+				<h1>Commets</h1>
+				<CommetList data={this.state.data} />
+				<CommetForm  onCommetSubmit={this.handleCommetSubmit}/>
+			</div>
+		);
+		}
+		});
+
+		ReactDOM.render(<CommetBox url="commets.json" />,document.getElementById("content"));
+
+	</script>
+</body>
+</html>
